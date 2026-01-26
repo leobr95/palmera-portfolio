@@ -1,7 +1,8 @@
 import Image from "next/image";
+import { useMemo } from "react";
 import type { PortfolioPreviewProps } from "./portfolioPreviewTypes";
 import { PORTFOLIO_IMAGES } from "@/lib/portafolio-images";
-import type { RepresentativeClient } from "@/lib/mock-data";
+import type { RepresentativeClient, ServiceCategory } from "@/lib/mock-data";
 
 function borderColor() {
   return "rgba(51,45,46,.14)";
@@ -13,7 +14,6 @@ function logoDropShadow() {
   return "drop-shadow(0 10px 18px rgba(0,0,0,.22))";
 }
 function whiteLogoFilter() {
-  // Convierte el logo a blanco (útil para PNG/SVG oscuros)
   return "brightness(0) invert(1) drop-shadow(0 10px 18px rgba(0,0,0,.22))";
 }
 
@@ -23,6 +23,24 @@ type ServiceSection = {
   subtitle: string;
   imageSrc: string;
   items: { id: string; name: string; summary: string }[];
+};
+
+// ✅ Constantes estables (NO se recrean por render)
+const DEFAULT_ORDER: ServiceCategory[] = ["Plagas", "Higiene", "Especializados"];
+
+const CATEGORY_META: Partial<Record<ServiceCategory, { subtitle: string; imageSrc: string }>> = {
+  Plagas: {
+    subtitle: "Control + prevención",
+    imageSrc: PORTFOLIO_IMAGES.services.plagas.src,
+  },
+  Higiene: {
+    subtitle: "Protocolos + desinfección",
+    imageSrc: PORTFOLIO_IMAGES.services.higiene.src,
+  },
+  Especializados: {
+    subtitle: "Complementarios",
+    imageSrc: PORTFOLIO_IMAGES.services.especializados.src,
+  },
 };
 
 export function PortfolioPreviewInfographic({
@@ -44,29 +62,65 @@ export function PortfolioPreviewInfographic({
   const highlightControls = controls.filter((c) => c.highlight);
   const otherControls = controls.filter((c) => !c.highlight);
 
-  const sections: ServiceSection[] = [
-    {
-      key: "Plagas",
-      title: "Plagas",
-      subtitle: "Control + prevención",
-      imageSrc: PORTFOLIO_IMAGES.services.plagas.src,
-      items: services.filter((s) => s.category === "Plagas"),
-    },
-    {
-      key: "Higiene",
-      title: "Higiene",
-      subtitle: "Protocolos + desinfección",
-      imageSrc: PORTFOLIO_IMAGES.services.higiene.src,
-      items: services.filter((s) => s.category === "Higiene"),
-    },
-    {
-      key: "Especializados",
-      title: "Especializados",
-      subtitle: "Complementarios",
-      imageSrc: PORTFOLIO_IMAGES.services.especializados.src,
-      items: services.filter((s) => s.category === "Especializados"),
-    },
-  ].filter((x) => x.items.length > 0);
+  // ✅ 1) Orden REAL de categorías según vienen los services (ya vienen ordenados desde el Builder)
+  const catsFromServices = useMemo(() => {
+    const seen = new Set<ServiceCategory>();
+    const order: ServiceCategory[] = [];
+    for (const s of services) {
+      if (!seen.has(s.category)) {
+        seen.add(s.category);
+        order.push(s.category);
+      }
+    }
+    return order;
+  }, [services]);
+
+  // ✅ 2) Base: si llega serviceCategoryOrder úsalo; si no, usa lo detectado desde services; si no hay nada, default
+  const baseOrder = useMemo<ServiceCategory[]>(() => {
+    const opt = options?.serviceCategoryOrder;
+    if (opt?.length) return opt;
+    if (catsFromServices.length) return catsFromServices;
+    return DEFAULT_ORDER;
+  }, [options?.serviceCategoryOrder, catsFromServices]);
+
+  // ✅ 3) CatOrder final: baseOrder + categorías faltantes detectadas en services (para no perder ninguna)
+  const catOrder = useMemo<ServiceCategory[]>(() => {
+    const set = new Set<ServiceCategory>(baseOrder);
+    const merged = [...baseOrder];
+    for (const c of catsFromServices) {
+      if (!set.has(c)) {
+        set.add(c);
+        merged.push(c);
+      }
+    }
+    return merged;
+  }, [baseOrder, catsFromServices]);
+
+  // ✅ 4) Agrupar services por categoría respetando el ORDEN que trae "services" (orden interno)
+  const servicesByCategory = useMemo(() => {
+    const map: Record<string, { id: string; name: string; summary: string }[]> = {};
+    for (const s of services) {
+      (map[s.category] ||= []).push({ id: s.id, name: s.name, summary: s.summary });
+    }
+    return map;
+  }, [services]);
+
+  const sections: ServiceSection[] = useMemo(() => {
+    return catOrder
+      .map((cat) => {
+        const items = servicesByCategory[cat] ?? [];
+        if (!items.length) return null;
+
+        return {
+          key: String(cat),
+          title: String(cat),
+          subtitle: CATEGORY_META[cat]?.subtitle ?? "",
+          imageSrc: CATEGORY_META[cat]?.imageSrc ?? PORTFOLIO_IMAGES.services.plagas.src,
+          items,
+        };
+      })
+      .filter(Boolean) as ServiceSection[];
+  }, [catOrder, servicesByCategory]);
 
   return (
     <div className="space-y-8">
@@ -77,16 +131,18 @@ export function PortfolioPreviewInfographic({
       >
         {/* ================= HERO ================= */}
         <div className="relative">
-          <div className="h-[340px] w-full">
-            <img
+          <div className="relative h-[340px] w-full">
+            <Image
               src={PORTFOLIO_IMAGES.hero.src}
               alt={PORTFOLIO_IMAGES.hero.alt}
-              className="h-full w-full object-cover"
-              loading="lazy"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
             />
           </div>
 
-          {/* Overlay pro (más intenso + glow) */}
+          {/* Overlay pro */}
           <div
             className="absolute inset-0"
             style={{
@@ -99,8 +155,6 @@ export function PortfolioPreviewInfographic({
           <div className="absolute inset-0 p-6">
             <div className="flex items-start justify-between gap-6">
               <div className="max-w-[72%]">
-                
-
                 <p className="mt-3 text-xs uppercase tracking-wider text-white/80">{company.name}</p>
 
                 <h2 className="mt-2 text-4xl font-semibold leading-tight text-white sm:text-5xl">
@@ -125,7 +179,6 @@ export function PortfolioPreviewInfographic({
                       </span>
                     ) : null}
 
-                    {/* Logo cliente (más grande, sin “cuadro”) */}
                     {client.logoSrc ? (
                       <span
                         className="ml-1 inline-flex items-center gap-2 rounded-full px-3 py-1"
@@ -146,13 +199,10 @@ export function PortfolioPreviewInfographic({
                 )}
 
                 <div className="mt-5 h-[3px] w-28 rounded-full" style={{ background: accent }} />
-
-
-
                 <p className="mt-2 text-xs text-white/75">{company.supportLine}</p>
               </div>
 
-              {/* Logos: Palmera arriba -> "Una empresa de" -> Anticimex (blanco) */}
+              {/* Logos */}
               <div className="flex flex-col items-end gap-2 text-right">
                 <Image
                   src={logoSrc}
@@ -180,7 +230,7 @@ export function PortfolioPreviewInfographic({
           </div>
         </div>
 
-        {/* ================= EXPERIENCE (50/50 Palmera vs Anticimex) ================= */}
+        {/* ================= EXPERIENCE ================= */}
         <div className="p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -196,7 +246,6 @@ export function PortfolioPreviewInfographic({
             </span>
           </div>
 
-          {/* Split */}
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
             {/* Palmera */}
             <div className="overflow-hidden rounded-3xl border bg-white" style={{ borderColor: borderColor() }}>
@@ -212,9 +261,7 @@ export function PortfolioPreviewInfographic({
                       style={{ filter: logoDropShadow() }}
                     />
                     <div className="h-10 w-[1px]" style={{ background: "rgba(51,45,46,.10)" }} />
-                    <span className="text-xs font-semibold uppercase tracking-wider opacity-70">
-                      Operación local
-                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wider opacity-70">Operación local</span>
                   </div>
                   <div className="h-[3px] w-16 rounded-full" style={{ background: accent }} />
                 </div>
@@ -249,7 +296,7 @@ export function PortfolioPreviewInfographic({
 
             {/* Anticimex */}
             <div className="overflow-hidden rounded-3xl border bg-white" style={{ borderColor: borderColor() }}>
-              <div className="p-5"><br />
+              <div className="p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <Image
@@ -260,13 +307,11 @@ export function PortfolioPreviewInfographic({
                       className="h-auto w-[210px]"
                     />
                     <div className="h-10 w-[1px]" style={{ background: "rgba(51,45,46,.10)" }} />
-                    <span className="text-xs font-semibold uppercase tracking-wider opacity-70">
-                      Respaldo global
-                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wider opacity-70">Respaldo global</span>
                   </div>
                   <div className="h-[3px] w-16 rounded-full" style={{ background: company.colors.ink }} />
                 </div>
-<br /><br />
+
                 <p className="mt-4 text-sm opacity-85">
                   Anticimex impulsa un enfoque moderno: prevención antes que reacción, estándares, mejores prácticas y tecnología aplicada al control de riesgo.
                 </p>
@@ -298,7 +343,7 @@ export function PortfolioPreviewInfographic({
         </div>
       </section>
 
-      {/* ================= SERVICES (NO VACÍOS) ================= */}
+      {/* ================= SERVICES ================= */}
       {sections.length > 0 && (
         <section
           className="overflow-hidden rounded-3xl border bg-white"
@@ -329,7 +374,13 @@ export function PortfolioPreviewInfographic({
               {sections.map((sec) => (
                 <div key={sec.key} className="overflow-hidden rounded-3xl border" style={{ borderColor: borderColor() }}>
                   <div className="relative h-[150px]">
-                    <img src={sec.imageSrc} alt={sec.title} className="h-full w-full object-cover" loading="lazy" />
+                    <Image
+                      src={sec.imageSrc}
+                      alt={sec.title}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      className="object-cover"
+                    />
                     <div
                       className="absolute inset-0"
                       style={{ background: "linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,.70) 100%)" }}
@@ -359,69 +410,60 @@ export function PortfolioPreviewInfographic({
                 </div>
               ))}
             </div>
-
-          
           </div>
         </section>
       )}
-<section
-  className="overflow-hidden rounded-3xl border bg-white"
-  style={{ borderColor: borderColor(), boxShadow: softShadow() }}
->
-  <div className="p-7">
-    {repClients.length > 0 && (
-      <div className="mt-2 rounded-3xl bg-white">
-        <div className="grid gap-8 lg:grid-cols-[360px_1fr]">
-          <div>
-            <p className="text-sm opacity-70">Con la confianza de</p>
-            <p className="mt-1 text-3xl font-semibold" style={{ color: company.colors.ink }}>
-              Grandes marcas
-            </p>
-            <p className="mt-3 text-sm opacity-80">
-              Clientes representativos que han confiado en nuestro trabajo (según alcance).
-            </p>
-          </div>
 
-          {/* Grid logos */}
-          <div className="grid grid-cols-2 gap-x-10 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
-            {repClients.slice(0, maxClients).map((x) => (
-              <div
-                key={x.id}
-                className="flex items-center justify-center"
-              >
-                {/* ✅ SLOT fijo: hace que todos se vean consistentes aunque el logo sea ancho/alto */}
-                <div
-                  className="relative w-full max-w-[240px] rounded-2xl"
-                  style={{
-                    height: 86, // ✅ más alto = más grande visualmente
-                  }}
-                >
-                  {x.logoSrc ? (
-                    <Image
-                      src={x.logoSrc}
-                      alt={x.name}
-                      fill
-                      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 220px"
-                      className="object-contain"
-                      style={{
-                        padding: "10px", // ✅ margen interno para que no pegue al borde
-                        filter: "drop-shadow(0 10px 18px rgba(0,0,0,.14))",
-                      }}
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <span className="text-base font-semibold opacity-70">{x.name}</span>
-                    </div>
-                  )}
+      {/* ================= CLIENTS ================= */}
+      <section
+        className="overflow-hidden rounded-3xl border bg-white"
+        style={{ borderColor: borderColor(), boxShadow: softShadow() }}
+      >
+        <div className="p-7">
+          {repClients.length > 0 && (
+            <div className="mt-2 rounded-3xl bg-white">
+              <div className="grid gap-8 lg:grid-cols-[360px_1fr]">
+                <div>
+                  <p className="text-sm opacity-70">Con la confianza de</p>
+                  <p className="mt-1 text-3xl font-semibold" style={{ color: company.colors.ink }}>
+                    Grandes marcas
+                  </p>
+                  <p className="mt-3 text-sm opacity-80">
+                    Clientes representativos que han confiado en nuestro trabajo (según alcance).
+                  </p>
                 </div>
+
+                <div className="grid grid-cols-2 gap-x-10 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+                  {repClients.slice(0, maxClients).map((x) => (
+                    <div key={x.id} className="flex items-center justify-center">
+                      <div className="relative w-full max-w-[240px] rounded-2xl" style={{ height: 86 }}>
+                        {x.logoSrc ? (
+                          <Image
+                            src={x.logoSrc}
+                            alt={x.name}
+                            fill
+                            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 220px"
+                            className="object-contain"
+                            style={{
+                              padding: "10px",
+                              filter: "drop-shadow(0 10px 18px rgba(0,0,0,.14))",
+                            }}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <span className="text-base font-semibold opacity-70">{x.name}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
-    )}
-  </div>
-</section>
+      </section>
 
       {/* ================= CONTROLS + CERTS + COVERAGE + SOCIALS ================= */}
       <section
@@ -445,13 +487,17 @@ export function PortfolioPreviewInfographic({
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
             <div className="overflow-hidden rounded-3xl border" style={{ borderColor: borderColor() }}>
               <div className="relative h-[160px]">
-                <img
+                <Image
                   src={PORTFOLIO_IMAGES.mip.src}
                   alt={PORTFOLIO_IMAGES.mip.alt}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
                 />
-                <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.65) 100%)" }} />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.65) 100%)" }}
+                />
                 <div className="absolute inset-0 flex items-end p-4">
                   <div>
                     <p className="text-sm font-semibold text-white">Enfoque MIP</p>
@@ -463,13 +509,17 @@ export function PortfolioPreviewInfographic({
 
             <div className="overflow-hidden rounded-3xl border" style={{ borderColor: borderColor() }}>
               <div className="relative h-[160px]">
-                <img
+                <Image
                   src={PORTFOLIO_IMAGES.smart.src}
                   alt={PORTFOLIO_IMAGES.smart.alt}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
                 />
-                <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.65) 100%)" }} />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.65) 100%)" }}
+                />
                 <div className="absolute inset-0 flex items-end p-4">
                   <div>
                     <p className="text-sm font-semibold text-white">Monitoreo / SMART</p>
@@ -520,7 +570,13 @@ export function PortfolioPreviewInfographic({
                         style={{ border: `1px solid ${borderColor()}` }}
                       >
                         {cert.logoSrc ? (
-                          <Image src={cert.logoSrc} alt={cert.name} width={32} height={32} className="h-8 w-8 object-contain" />
+                          <Image
+                            src={cert.logoSrc}
+                            alt={cert.name}
+                            width={32}
+                            height={32}
+                            className="h-8 w-8 object-contain"
+                          />
                         ) : (
                           <span className="text-xs font-semibold">{cert.name.slice(0, 2).toUpperCase()}</span>
                         )}
@@ -537,13 +593,17 @@ export function PortfolioPreviewInfographic({
 
             <div className="overflow-hidden rounded-3xl border bg-white" style={{ borderColor: borderColor() }}>
               <div className="relative h-[140px]">
-                <img
+                <Image
                   src={PORTFOLIO_IMAGES.coverage.src}
                   alt={PORTFOLIO_IMAGES.coverage.alt}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
                 />
-                <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(51,45,46,.75) 0%, rgba(51,45,46,.10) 100%)" }} />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(90deg, rgba(51,45,46,.75) 0%, rgba(51,45,46,.10) 100%)" }}
+                />
                 <div className="absolute inset-0 flex items-end p-5">
                   <div>
                     <p className="text-base font-semibold text-white">Cobertura</p>
@@ -591,14 +651,19 @@ export function PortfolioPreviewInfographic({
                   </p>
                   <div className="mt-2 grid gap-2">
                     {company.socials.map((s) => (
-                      <a key={s.label} href={s.href} target="_blank" rel="noreferrer" className="text-sm opacity-85 hover:opacity-100">
+                      <a
+                        key={s.label}
+                        href={s.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm opacity-85 hover:opacity-100"
+                      >
                         <span className="font-semibold">{s.label}:</span> {s.value}
                       </a>
                     ))}
                   </div>
                 </div>
 
-                {/* Logos sin cuadros (Anticimex blanco) */}
                 <div className="mt-4 flex items-center gap-4">
                   <Image
                     src={logoSrc}

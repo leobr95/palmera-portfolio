@@ -1,4 +1,4 @@
-import type { Client, Company, Control, Service } from "@/lib/mock-data";
+import type { Client, Company, Control, Service, ServiceCategory } from "@/lib/mock-data";
 
 export type PortfolioPreviewCopy = {
   experienceIntro?: string;
@@ -14,6 +14,8 @@ export type PortfolioPreviewOptions = {
   logoSrc?: string; // por defecto "/brand/palmera-junior.webp"
   maxRepresentativeClients?: number; // por defecto 7
   copy?: PortfolioPreviewCopy;
+  serviceCategoryOrder?: ServiceCategory[];
+
 };
 
 export type PortfolioPreviewProps = {

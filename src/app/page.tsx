@@ -1,15 +1,10 @@
-"use client";
 import Link from "next/link";
 import Image from "next/image";
 import { COMPANY } from "@/lib/mock-data";
-import { use } from "react";
 
-function borderColor() {
-  return "rgba(51,45,46,.14)";
-}
-function softShadow() {
-  return "0 18px 60px rgba(0,0,0,.10)";
-}
+const BORDER_COLOR = "rgba(51,45,46,.14)";
+const SOFT_SHADOW = "0 18px 60px rgba(0,0,0,.10)";
+const LOGO_SHADOW = "drop-shadow(0 10px 18px rgba(0,0,0,.18))";
 
 export default function HomePage() {
   return (
@@ -21,17 +16,20 @@ export default function HomePage() {
     >
       <div
         className="w-full max-w-2xl overflow-hidden rounded-3xl border bg-white"
-        style={{ borderColor: borderColor(), boxShadow: softShadow() }}
+        style={{ borderColor: BORDER_COLOR, boxShadow: SOFT_SHADOW }}
       >
         {/* Top bar / brand */}
         <div className="flex flex-col gap-5 p-7 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wider opacity-70">Portafolios comerciales</p>
+            <p className="text-xs uppercase tracking-wider opacity-70">
+              Portafolios comerciales
+            </p>
             <h1 className="mt-2 text-3xl font-semibold" style={{ color: COMPANY.colors.ink }}>
               Palmera Junior — Portafolios por cliente
             </h1>
             <p className="mt-3 text-sm opacity-85">
-              Un constructor moderno para armar <span className="font-semibold">portafolios personalizados</span> por cliente.
+              Un constructor moderno para armar{" "}
+              <span className="font-semibold">portafolios personalizados</span> por cliente.
               Selecciona servicios y controles relevantes, genera un PDF profesional o comparte un enlace con el resumen.
             </p>
           </div>
@@ -45,7 +43,7 @@ export default function HomePage() {
               height={90}
               priority
               className="h-auto w-[190px]"
-              style={{ filter: "drop-shadow(0 10px 18px rgba(0,0,0,.18))" }}
+              style={{ filter: LOGO_SHADOW }}
             />
             <p className="text-[11px] uppercase tracking-wider opacity-70">Una empresa de</p>
             <Image
@@ -55,7 +53,7 @@ export default function HomePage() {
               height={52}
               priority
               className="h-auto w-[165px]"
-              style={{ filter: "drop-shadow(0 10px 18px rgba(0,0,0,.18))" }}
+              style={{ filter: LOGO_SHADOW }}
             />
           </div>
         </div>
@@ -63,34 +61,28 @@ export default function HomePage() {
         {/* Feature bullets */}
         <div className="px-7 pb-2">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border bg-white p-4" style={{ borderColor: borderColor() }}>
+            <div className="rounded-2xl border bg-white p-4" style={{ borderColor: BORDER_COLOR }}>
               <p className="text-xs opacity-70">Personalización</p>
               <p className="mt-1 text-sm font-semibold" style={{ color: COMPANY.colors.ink }}>
                 Servicios y controles por cliente
               </p>
-              <p className="mt-1 text-xs opacity-75">
-                Selección guiada para impactar el negocio.
-              </p>
+              <p className="mt-1 text-xs opacity-75">Selección guiada para impactar el negocio.</p>
             </div>
 
-            <div className="rounded-2xl border bg-white p-4" style={{ borderColor: borderColor() }}>
+            <div className="rounded-2xl border bg-white p-4" style={{ borderColor: BORDER_COLOR }}>
               <p className="text-xs opacity-70">Entrega</p>
               <p className="mt-1 text-sm font-semibold" style={{ color: COMPANY.colors.ink }}>
                 PDF + link compartible
               </p>
-              <p className="mt-1 text-xs opacity-75">
-                Un resumen web y un PDF listo para enviar.
-              </p>
+              <p className="mt-1 text-xs opacity-75">Un resumen web y un PDF listo para enviar.</p>
             </div>
 
-            <div className="rounded-2xl border bg-white p-4" style={{ borderColor: borderColor() }}>
+            <div className="rounded-2xl border bg-white p-4" style={{ borderColor: BORDER_COLOR }}>
               <p className="text-xs opacity-70">Diseño</p>
               <p className="mt-1 text-sm font-semibold" style={{ color: COMPANY.colors.ink }}>
                 Visual pro y consistente
               </p>
-              <p className="mt-1 text-xs opacity-75">
-                Plantillas modernas (web y PDF).
-              </p>
+              <p className="mt-1 text-xs opacity-75">Plantillas modernas (web y PDF).</p>
             </div>
           </div>
         </div>
@@ -100,22 +92,19 @@ export default function HomePage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link
               href="/builder"
-              className="group inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white transition-all"
+              className={[
+                "group inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3",
+                "text-sm font-semibold text-white transition-all",
+                // reemplazo del styled-jsx (sombras y active)
+                "shadow-[0_10px_26px_rgba(0,0,0,0.08)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.12)]",
+                "active:translate-y-[1px]",
+              ].join(" ")}
               style={{ background: COMPANY.colors.palmeraGreen }}
             >
               <span className="transition-transform group-hover:translate-x-[1px]">
                 Ir al constructor de portafolio
               </span>
               <span className="transition-transform group-hover:translate-x-1">→</span>
-            </Link>
-
-            <Link
-              href="/p?client=colanta"
-              className="group inline-flex items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-semibold transition-all hover:-translate-y-[1px]"
-              style={{ borderColor: borderColor(), color: COMPANY.colors.ink }}
-            >
-              Ver ejemplo
-              <span className="opacity-60 transition-opacity group-hover:opacity-100">↗</span>
             </Link>
           </div>
 
@@ -125,25 +114,12 @@ export default function HomePage() {
         </div>
 
         {/* Subtle bottom strip */}
-        <div className="border-t px-7 py-4" style={{ borderColor: borderColor() }}>
+        <div className="border-t px-7 py-4" style={{ borderColor: BORDER_COLOR }}>
           <p className="text-xs opacity-70">
             {COMPANY.name} • {COMPANY.supportLine}
           </p>
         </div>
       </div>
-
-      <style jsx global>{`
-        /* Efecto moderno para botones (sin dependencias) */
-        a.group {
-          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
-        }
-        a.group:hover {
-          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
-        }
-        a.group:active {
-          transform: translateY(1px);
-        }
-      `}</style>
     </main>
   );
 }
