@@ -162,7 +162,13 @@ export function PortfolioPreviewInfographic({
                 </h2>
 
                 <p className="mt-3 text-xl text-white/90 sm:text-2xl">
-                  {subtitle} <span className="font-semibold">{client.name}</span>
+                  {showClientMeta ? (
+                    <>
+                      {subtitle} <span className="font-semibold">{client.name}</span>
+                    </>
+                  ) : (
+                    subtitle
+                  )}
                 </p>
 
                 {showClientMeta && (

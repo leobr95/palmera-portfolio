@@ -282,7 +282,7 @@ export function PortfolioOrderEditor({
       <div className={cardCls} style={{ borderColor: "rgba(51,45,46,.12)" }}>
         <div className="mb-3 flex items-end justify-between">
           <div>
-            <div className={titleCls}>Ordenar servicios</div>
+            <div className={titleCls}>1) Servicios</div>
             <div className="text-xs opacity-70">
               Arrastra categorías o servicios. Colapsa para mover más rápido.
             </div>
@@ -368,7 +368,7 @@ export function PortfolioOrderEditor({
         {/* Clientes */}
         <div className={cardCls} style={{ borderColor: "rgba(51,45,46,.12)" }}>
           <div className="mb-3">
-            <div className={titleCls}>Ordenar clientes (Grandes marcas)</div>
+            <div className={titleCls}>2) Clientes (grandes marcas)</div>
             <div className="text-xs opacity-70">
               Arrastra para definir el orden de logos.
             </div>
@@ -408,7 +408,7 @@ export function PortfolioOrderEditor({
         {/* Certificaciones */}
         <div className={cardCls} style={{ borderColor: "rgba(51,45,46,.12)" }}>
           <div className="mb-3">
-            <div className={titleCls}>Ordenar certificaciones</div>
+            <div className={titleCls}>3) Certificaciones</div>
             <div className="text-xs opacity-70">
               Arrastra para priorizar certificaciones.
             </div>
@@ -435,7 +435,7 @@ export function PortfolioOrderEditor({
         {/* Cobertura */}
         <div className={cardCls} style={{ borderColor: "rgba(51,45,46,.12)" }}>
           <div className="mb-3">
-            <div className={titleCls}>Ordenar cobertura</div>
+            <div className={titleCls}>4) Cobertura</div>
             <div className="text-xs opacity-70">
               Arrastra ciudades para definir el orden.
             </div>

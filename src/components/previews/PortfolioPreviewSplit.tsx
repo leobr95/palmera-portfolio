@@ -43,7 +43,13 @@ export function PortfolioPreviewSplit({
           <p className="text-xs opacity-80">{company.name}</p>
           <h2 className="mt-2 text-2xl font-semibold">{title}</h2>
           <p className="mt-2 text-sm opacity-90">
-            {subtitle} <span className="font-semibold">{client.name}</span>
+            {showClientMeta ? (
+              <>
+                {subtitle} <span className="font-semibold">{client.name}</span>
+              </>
+            ) : (
+              subtitle
+            )}
           </p>
 
           {showClientMeta && (

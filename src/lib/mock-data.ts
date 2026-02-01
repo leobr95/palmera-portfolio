@@ -1,9 +1,28 @@
 export type ServiceCategory = "Plagas" | "Higiene" | "Especializados";
 
+export type ServiceIcon =
+  | "spray"
+  | "rat"
+  | "cockroach"
+  | "fly"
+  | "mosquito"
+  | "ant"
+  | "flea"
+  | "tick"
+  | "bird"
+  | "termite"
+  | "bat"
+  | "snake"
+  | "grain"
+  | "shield"
+  | "water"
+  | "wrench";
+
 export type Service = {
   id: string;
   name: string;
   category: ServiceCategory;
+  icon: ServiceIcon;
   summary: string;
 };
 
@@ -172,6 +191,7 @@ export const SERVICES: Service[] = [
     id: "fumigacion",
     name: "Fumigación / Desinsectación",
     category: "Plagas",
+    icon: "spray",
     summary:
       "Control de plagas rastreras y voladoras con técnicas profesionales para reducir focos y proteger la operación (según diagnóstico).",
   },
@@ -179,6 +199,7 @@ export const SERVICES: Service[] = [
     id: "roedores",
     name: "Control de roedores (ratas y ratones)",
     category: "Plagas",
+    icon: "rat",
     summary:
       "Prevención y control con enfoque MIP: inspección, puntos críticos, medidas de control y recomendaciones para mitigar el riesgo.",
   },
@@ -186,6 +207,7 @@ export const SERVICES: Service[] = [
     id: "cucarachas",
     name: "Control de cucarachas",
     category: "Plagas",
+    icon: "cockroach",
     summary:
       "Tratamientos focalizados + acciones preventivas para cortar reinfestación y mejorar condiciones sanitarias del sitio.",
   },
@@ -193,6 +215,7 @@ export const SERVICES: Service[] = [
     id: "moscas",
     name: "Control de moscas",
     category: "Plagas",
+    icon: "fly",
     summary:
       "Manejo integral del riesgo: identificación de focos, control y recomendaciones para reducir presencia en áreas sensibles.",
   },
@@ -200,16 +223,36 @@ export const SERVICES: Service[] = [
     id: "mosquitos",
     name: "Control de zancudos / mosquitos",
     category: "Plagas",
+    icon: "mosquito",
     summary:
       "Control en entornos residenciales, comerciales e industriales con métodos y productos aprobados, priorizando seguridad del ambiente.",
   },
-  { id: "hormigas", name: "Control de hormigas", category: "Plagas", summary: "Control y prevención según puntos de ingreso y condiciones del entorno." },
-  { id: "pulgas", name: "Control de pulgas", category: "Plagas", summary: "Intervención orientada a cortar ciclo y reducir riesgo en áreas de convivencia." },
-  { id: "garrapatas", name: "Control de garrapatas", category: "Plagas", summary: "Acompañamiento y control para disminuir presencia y riesgo sanitario." },
+  {
+    id: "hormigas",
+    name: "Control de hormigas",
+    category: "Plagas",
+    icon: "ant",
+    summary: "Control y prevención según puntos de ingreso y condiciones del entorno.",
+  },
+  {
+    id: "pulgas",
+    name: "Control de pulgas",
+    category: "Plagas",
+    icon: "flea",
+    summary: "Intervención orientada a cortar ciclo y reducir riesgo en áreas de convivencia.",
+  },
+  {
+    id: "garrapatas",
+    name: "Control de garrapatas",
+    category: "Plagas",
+    icon: "tick",
+    summary: "Acompañamiento y control para disminuir presencia y riesgo sanitario.",
+  },
   {
     id: "palomas",
     name: "Control de palomas / aves",
     category: "Plagas",
+    icon: "bird",
     summary:
       "Medidas de control y exclusión para reducir afectación sanitaria y deterioro en infraestructura (según sitio).",
   },
@@ -217,6 +260,7 @@ export const SERVICES: Service[] = [
     id: "comejen",
     name: "Control de comején / termitas",
     category: "Especializados",
+    icon: "termite",
     summary:
       "Intervención especializada para proteger estructura y activos, con diagnóstico del nivel de afectación y plan de control.",
   },
@@ -224,6 +268,7 @@ export const SERVICES: Service[] = [
     id: "murcielagos",
     name: "Control de murciélagos",
     category: "Especializados",
+    icon: "bat",
     summary:
       "Manejo especializado para mitigar riesgos sanitarios y operativos, considerando condiciones del lugar y medidas de control.",
   },
@@ -231,6 +276,7 @@ export const SERVICES: Service[] = [
     id: "ofidios",
     name: "Control de ofidios (serpientes)",
     category: "Especializados",
+    icon: "snake",
     summary:
       "Servicio orientado a seguridad en zonas con riesgo: prevención, manejo y acciones estratégicas según el entorno.",
   },
@@ -238,6 +284,7 @@ export const SERVICES: Service[] = [
     id: "granos_almacenados",
     name: "Control de plagas en granos almacenados",
     category: "Especializados",
+    icon: "grain",
     summary:
       "Prevención y control para reducir deterioro/contaminación en almacenamiento, con plan según condiciones del sitio.",
   },
@@ -247,6 +294,7 @@ export const SERVICES: Service[] = [
     id: "desinfeccion",
     name: "Desinfección de ambientes y superficies",
     category: "Higiene",
+    icon: "shield",
     summary:
       "Protocolos de desinfección según necesidad del cliente y tipo de área, con soporte para evidencias (según alcance).",
   },
@@ -254,6 +302,7 @@ export const SERVICES: Service[] = [
     id: "lavado_tanques",
     name: "Lavado de tanques de agua",
     category: "Higiene",
+    icon: "water",
     summary:
       "Limpieza y mantenimiento para reducir contaminación y apoyar buenas prácticas de higiene en el suministro de agua.",
   },
@@ -263,6 +312,7 @@ export const SERVICES: Service[] = [
     id: "servicios_especiales",
     name: "Servicios especiales (mallas, anjeos, sellos, etc.)",
     category: "Especializados",
+    icon: "wrench",
     summary:
       "Acciones complementarias de control físico/mecánico para reforzar la prevención (según diagnóstico y necesidad).",
   },

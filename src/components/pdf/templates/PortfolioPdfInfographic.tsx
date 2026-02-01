@@ -12,6 +12,7 @@ import {
 
 import type { PortfolioPdfProps } from "@/components/pdf/PortfolioPdf";
 import { PORTFOLIO_IMAGES } from "@/lib/portafolio-images";
+import { GENERIC_CLIENT_ID } from "@/lib/portfolio-client";
 import type {
   Control,
   Service,
@@ -54,6 +55,7 @@ export function PortfolioPdfInfographic({
   logoAnticimexSrc = "/brand/anticimex.png",
 }: PortfolioPdfProps) {
   const accent = company.colors.palmeraGreen;
+  const showClientMeta = client.id !== GENERIC_CLIENT_ID;
 
   const MAX_SERVICES_PER_CAT = 6;
   const MAX_CTRL_HIGHLIGHT = 4;
@@ -356,19 +358,27 @@ export function PortfolioPdfInfographic({
                 <Text style={styles.coverTitle}>{title}</Text>
 
                 <Text style={styles.coverSub}>
-                  {subtitle} <Text style={{ fontWeight: 700 }}>{client.name}</Text>
+                  {showClientMeta ? (
+                    <>
+                      {subtitle} <Text style={{ fontWeight: 700 }}>{client.name}</Text>
+                    </>
+                  ) : (
+                    subtitle
+                  )}
                 </Text>
 
-                <View style={styles.chipRow}>
-                  {client.industry ? (
-                    <View style={styles.chip}><Text style={styles.chipText}>{client.industry}</Text></View>
-                  ) : null}
-                  {client.city ? (
-                    <View style={styles.chip}><Text style={styles.chipText}>{client.city}</Text></View>
-                  ) : null}
-                </View>
+                {showClientMeta ? (
+                  <View style={styles.chipRow}>
+                    {client.industry ? (
+                      <View style={styles.chip}><Text style={styles.chipText}>{client.industry}</Text></View>
+                    ) : null}
+                    {client.city ? (
+                      <View style={styles.chip}><Text style={styles.chipText}>{client.city}</Text></View>
+                    ) : null}
+                  </View>
+                ) : null}
 
-                {clientLogo ? (
+                {showClientMeta && clientLogo ? (
                   <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
                     <Text style={{ fontSize: 8.2, color: "white", opacity: 0.9, fontWeight: 700, lineHeight: LH_COMPACT }}>
                       Cliente:

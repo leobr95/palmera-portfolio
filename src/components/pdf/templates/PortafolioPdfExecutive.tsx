@@ -2,6 +2,7 @@
 
 import { Document, Page, Text, View, StyleSheet, Image as PdfImage } from "@react-pdf/renderer";
 import type { PortfolioPdfProps } from "@/components/pdf/PortfolioPdf";
+import { GENERIC_CLIENT_ID } from "@/lib/portfolio-client";
 
 function publicAssetUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
@@ -21,6 +22,7 @@ export function PortfolioPdfExecutive({
 }: PortfolioPdfProps) {
   const palmeraLogo = publicAssetUrl(logoPalmeraSrc);
   const anticimexLogo = publicAssetUrl(logoAnticimexSrc);
+  const showClientMeta = client.id !== GENERIC_CLIENT_ID;
 
   const styles = StyleSheet.create({
     page: { padding: 32, fontSize: 11, color: company.colors.ink },
@@ -55,9 +57,7 @@ export function PortfolioPdfExecutive({
             <View style={{ flex: 1, paddingRight: 10 }}>
               <Text style={{ fontSize: 10, opacity: 0.85 }}>{company.name}</Text>
               <Text style={[styles.h1, { marginTop: 6 }]}>{title}</Text>
-              <Text style={styles.h2}>
-                {subtitle} {client.name}
-              </Text>
+              <Text style={styles.h2}>{showClientMeta ? `${subtitle} ${client.name}` : subtitle}</Text>
               <Text style={{ marginTop: 10, fontSize: 10, opacity: 0.85 }}>{company.tagline}</Text>
               <Text style={{ marginTop: 4, fontSize: 9, opacity: 0.8 }}>{company.supportLine}</Text>
             </View>

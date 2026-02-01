@@ -3,8 +3,15 @@
 import type { Client, Control, Service, Company } from "@/lib/mock-data";
 import { PortfolioPdfExecutive } from "@/components/pdf/templates/PortafolioPdfExecutive";
 import { PortfolioPdfInfographic } from "@/components/pdf/templates/PortfolioPdfInfographic";
+import { PortfolioPdfBrochure } from "@/components/pdf/templates/PortfolioPdfBrochure";
 
-export type DesignVariant = "executive" | "split" | "minimal" | "infographic";
+export type DesignVariant =
+  | "executive"
+  | "split"
+  | "minimal"
+  | "infographic"
+  | "brochure"
+  | "brochure_alt";
 
 export type PortfolioPdfProps = {
   company: Company;
@@ -22,7 +29,9 @@ export type PortfolioPdfProps = {
 export function PortfolioPdf(props: PortfolioPdfProps) {
   const v: DesignVariant = props.variant ?? "executive";
 
-  // Por ahora: split/minimal usan el template executive (hasta que hagas sus templates PDF)
+  if (v === "brochure" || v === "brochure_alt") {
+    return <PortfolioPdfBrochure {...props} />;
+  }
   if (v === "infographic") return <PortfolioPdfInfographic {...props} />;
   return <PortfolioPdfExecutive {...props} />;
 }

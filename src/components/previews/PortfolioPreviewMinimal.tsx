@@ -13,6 +13,7 @@ export function PortfolioPreviewMinimal({
   const accent = options?.accentColor ?? company.colors.palmeraGreen;
   const logoSrc = options?.logoSrc ?? "/brand/palmera-junior.webp";
   const showLogo = options?.showLogo ?? true;
+  const showClientMeta = options?.showClientMeta ?? true;
 
   return (
     <div className="space-y-10">
@@ -23,7 +24,13 @@ export function PortfolioPreviewMinimal({
             <p className="text-xs uppercase tracking-wider opacity-70">{company.name}</p>
             <h2 className="mt-2 text-3xl font-semibold" style={{ color: company.colors.ink }}>{title}</h2>
             <p className="mt-2 text-sm opacity-80">
-              {subtitle} <span className="font-semibold">{client.name}</span>
+              {showClientMeta ? (
+                <>
+                  {subtitle} <span className="font-semibold">{client.name}</span>
+                </>
+              ) : (
+                subtitle
+              )}
             </p>
             <div className="mt-4 h-[3px] w-20 rounded-full" style={{ background: accent }} />
             <p className="mt-4 text-sm opacity-80">{company.tagline}</p>
@@ -39,8 +46,17 @@ export function PortfolioPreviewMinimal({
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border p-4" style={{ borderColor: "rgba(51,45,46,.10)" }}>
             <p className="text-xs opacity-70">Cliente</p>
-            <p className="mt-1 text-sm font-semibold">{client.name}</p>
-            <p className="text-xs opacity-70">{client.industry}{client.city ? ` • ${client.city}` : ""}</p>
+            {showClientMeta ? (
+              <>
+                <p className="mt-1 text-sm font-semibold">{client.name}</p>
+                <p className="text-xs opacity-70">{client.industry}{client.city ? ` • ${client.city}` : ""}</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 text-sm font-semibold">Portafolio general</p>
+                <p className="text-xs opacity-70">Sin cliente específico</p>
+              </>
+            )}
           </div>
           <div className="rounded-2xl border p-4" style={{ borderColor: "rgba(51,45,46,.10)" }}>
             <p className="text-xs opacity-70">Servicios</p>

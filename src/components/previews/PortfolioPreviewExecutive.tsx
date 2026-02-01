@@ -44,7 +44,13 @@ export function PortfolioPreviewExecutive({
             <p className="text-sm opacity-80">{company.name}</p>
             <h2 className="mt-2 text-3xl font-semibold">{title}</h2>
             <p className="mt-2 text-lg opacity-90">
-              {subtitle} <span className="font-semibold">{client.name}</span>
+              {showClientMeta ? (
+                <>
+                  {subtitle} <span className="font-semibold">{client.name}</span>
+                </>
+              ) : (
+                subtitle
+              )}
             </p>
 
             {showClientMeta && (

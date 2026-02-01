@@ -15,6 +15,7 @@ export type PortfolioPreviewOptions = {
   maxRepresentativeClients?: number; // por defecto 7
   copy?: PortfolioPreviewCopy;
   serviceCategoryOrder?: ServiceCategory[];
+  brochureTheme?: "green" | "aqua";
 
 };
 

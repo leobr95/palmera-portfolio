@@ -1,21 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { COMPANY, CLIENTS, SERVICES, CONTROLS } from "@/lib/mock-data";
+import { buildGenericClient, GENERIC_CLIENT_ID } from "@/lib/portfolio-client";
 import type { DesignVariant } from "@/components/pdf/PortfolioPdf";
-import type { ServiceCategory, Service, RepresentativeClient } from "@/lib/mock-data";
+import type { Client, ServiceCategory, Service, RepresentativeClient } from "@/lib/mock-data";
 
 import { PortfolioPreviewExecutive } from "@/components/previews/PortfolioPreviewExecutive";
 import { PortfolioPreviewSplit } from "@/components/previews/PortfolioPreviewSplit";
 import { PortfolioPreviewMinimal } from "@/components/previews/PortfolioPreviewMinimal";
 import { PortfolioPreviewInfographic } from "@/components/previews/PortfolioPreviewInfographic";
+import { PortfolioPreviewBrochure } from "@/components/previews/PortfolioPreviewBrochure";
 
 import { PortfolioOrderEditor } from "@/components/portfolio/PortfolioOrderEditor";
 
-const ALLOWED: DesignVariant[] = ["executive", "split", "minimal", "infographic"];
+const ALLOWED: DesignVariant[] = ["brochure", "brochure_alt", "infographic"];
 const DEFAULT_CAT_ORDER: ServiceCategory[] = ["Plagas", "Higiene", "Especializados"];
+const DEFAULT_TITLE = "Portafolio de Servicios";
+const DEFAULT_TITLE_GENERIC = "Portafolio General de Servicios";
+const DEFAULT_SUBTITLE = "Propuesta para";
+const DEFAULT_SUBTITLE_GENERIC = "Soluciones integrales para organizaciones";
 
 function uniq<T>(arr: T[]) {
   return Array.from(new Set(arr));
@@ -59,26 +65,42 @@ export default function PortfolioPublicClient() {
 
   // ✅ strings como fuente de verdad (evita ref changes de searchParams)
   const editParam = sp.get("edit") ?? "";
-  const variantParam = sp.get("variant") ?? "executive";
+  const variantParam = sp.get("variant") ?? "brochure";
   const titleParam = sp.get("title") ?? "Portafolio de Servicios";
   const subtitleParam = sp.get("subtitle") ?? "Propuesta para";
   const clientParam = sp.get("client") ?? (CLIENTS[0]?.id ?? "colanta");
   const servicesParam = sp.get("services") ?? "";
   const controlsParam = sp.get("controls") ?? "";
+  const printParam = sp.get("print") ?? "";
 
-  const isEdit = editParam === "1";
+  const shouldAutoPrint = printParam === "1";
+  const isEdit = editParam === "1" && !shouldAutoPrint;
 
   const variant = useMemo<DesignVariant>(() => {
     const v = variantParam as DesignVariant;
-    return ALLOWED.includes(v) ? v : "executive";
+    return ALLOWED.includes(v) ? v : "brochure";
   }, [variantParam]);
 
-  const title = titleParam;
-  const subtitle = subtitleParam;
+  const genericClient = useMemo<Client>(() => buildGenericClient(SERVICES, CONTROLS), []);
 
   const client = useMemo(() => {
+    if (clientParam === GENERIC_CLIENT_ID) return genericClient;
     return CLIENTS.find((c) => c.id === clientParam) ?? CLIENTS[0];
-  }, [clientParam]);
+  }, [clientParam, genericClient]);
+
+  const title = useMemo(() => {
+    if (client.id === GENERIC_CLIENT_ID && titleParam === DEFAULT_TITLE) {
+      return DEFAULT_TITLE_GENERIC;
+    }
+    return titleParam;
+  }, [client.id, titleParam]);
+
+  const subtitle = useMemo(() => {
+    if (client.id === GENERIC_CLIENT_ID && subtitleParam === DEFAULT_SUBTITLE) {
+      return DEFAULT_SUBTITLE_GENERIC;
+    }
+    return subtitleParam;
+  }, [client.id, subtitleParam]);
 
   // ✅ ids memoizados (dependen de strings)
   const serviceIds = useMemo(() => {
@@ -123,10 +145,6 @@ export default function PortfolioPublicClient() {
     ];
   }, [selectedServices]);
 
-  // deps estables (strings) para reset sin loops
-  const presentCatsKey = useMemo(() => presentCats.join("|"), [presentCats]);
-  const selectedServicesKey = useMemo(() => selectedServices.map((s) => s.id).join("|"), [selectedServices]);
-
   const [categoryOrder, setCategoryOrder] = useState<ServiceCategory[]>(() => presentCats);
   const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>({});
   const [serviceOrderByCategory, setServiceOrderByCategory] = useState<Record<string, string[]>>({});
@@ -152,6 +170,8 @@ export default function PortfolioPublicClient() {
   const [certOrder, setCertOrder] = useState<string[]>(() => companyCerts.map((c) => c.id));
   const [coverageOrder, setCoverageOrder] = useState<string[]>(() => companyCoverage);
   const [repClientOrder, setRepClientOrder] = useState<string[]>(() => companyRepClients.map((c) => c.id));
+  const [previewAnimNonce, setPreviewAnimNonce] = useState(0);
+  const didInitPreviewAnim = useRef(false);
 
   // ✅ Reset de órdenes SOLO cuando cambian realmente los servicios/cats
   useEffect(() => {
@@ -172,7 +192,7 @@ export default function PortfolioPublicClient() {
     // si quieres resetear colapsados cuando cambien cats, lo puedes hacer aquí
     // setCollapsedCats({});
 
-  }, [presentCatsKey, selectedServicesKey]); // ✅ deps estables
+  }, [presentCats, selectedServices]);
 
   // ====== Derivados ordenados (para Preview)
   const orderedServices = useMemo(() => {
@@ -191,6 +211,18 @@ export default function PortfolioPublicClient() {
     }
     return result;
   }, [selectedServices, categoryOrder, serviceOrderByCategory, servicesByCategory]);
+  const orderedServiceIdsKey = useMemo(() => orderedServices.map((s) => s.id).join("|"), [orderedServices]);
+
+  useEffect(() => {
+    if (!didInitPreviewAnim.current) {
+      didInitPreviewAnim.current = true;
+      return;
+    }
+    const rafId = window.requestAnimationFrame(() => {
+      setPreviewAnimNonce((prev) => prev + 1);
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [orderedServiceIdsKey]);
 
   const orderedCompany = useMemo(() => {
     const certById = new Map(companyCerts.map((c) => [c.id, c]));
@@ -207,19 +239,24 @@ export default function PortfolioPublicClient() {
   const options = useMemo(
     () => ({
       logoSrc: "/brand/palmera-junior.webp",
-      accentColor: COMPANY.colors.palmeraGreen,
+      accentColor: variant === "brochure_alt" ? "#3bd5ff" : COMPANY.colors.palmeraGreen,
       showAnticimexBadge: true,
-      showClientMeta: true,
+      showClientMeta: client.id !== GENERIC_CLIENT_ID,
       maxRepresentativeClients: 7,
       serviceCategoryOrder: categoryOrder,
+      brochureTheme: variant === "brochure_alt" ? ("aqua" as const) : ("green" as const),
     }),
-    [categoryOrder]
+    [categoryOrder, client.id, variant]
   );
 
   const Preview = useMemo(() => {
     switch (variant) {
       case "infographic":
         return PortfolioPreviewInfographic;
+      case "brochure":
+        return PortfolioPreviewBrochure;
+      case "brochure_alt":
+        return PortfolioPreviewBrochure;
       case "split":
         return PortfolioPreviewSplit;
       case "minimal":
@@ -230,11 +267,28 @@ export default function PortfolioPublicClient() {
     }
   }, [variant]);
 
+  useEffect(() => {
+    if (!shouldAutoPrint) return;
+    const timer = window.setTimeout(() => {
+      window.print();
+    }, 420);
+    return () => window.clearTimeout(timer);
+  }, [shouldAutoPrint]);
+
   if (!client) return null;
 
   return (
-    <div className="min-h-screen" style={{ background: COMPANY.colors.muted }}>
-      <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="min-h-screen portfolio-public-root" style={{ background: COMPANY.colors.muted }}>
+      <div className="mx-auto max-w-6xl px-4 py-8 portfolio-public-shell">
+        {isEdit ? (
+          <div className="mb-4 rounded-2xl border bg-white p-4 shadow-sm" style={{ borderColor: "rgba(51,45,46,.12)" }}>
+            <p className="text-sm font-semibold">Editor de contenido</p>
+            <p className="mt-1 text-xs opacity-70">
+              Organiza el orden de servicios, clientes, certificaciones y cobertura para esta versión del portafolio.
+            </p>
+          </div>
+        ) : null}
+
         {isEdit ? (
           <PortfolioOrderEditor
             categories={presentCats}
@@ -257,24 +311,80 @@ export default function PortfolioPublicClient() {
           />
         ) : null}
 
-        <div className="rounded-2xl bg-white p-5 shadow-md border" style={{ borderColor: "rgba(51,45,46,.12)" }}>
-          <Preview
-            company={orderedCompany}
-            client={client}
-            title={title}
-            subtitle={subtitle}
-            services={orderedServices}
-            controls={selectedControls}
-            options={options}
-          />
+        <div
+          className="rounded-2xl bg-white p-5 shadow-md border portfolio-public-card"
+          style={{ borderColor: "rgba(51,45,46,.12)" }}
+        >
+          <div
+            className={[
+              previewAnimNonce
+                ? previewAnimNonce % 2 === 0
+                  ? "preview-reorder-a"
+                  : "preview-reorder-b"
+                : "",
+            ].join(" ")}
+          >
+            <Preview
+              key={variant}
+              company={orderedCompany}
+              client={client}
+              title={title}
+              subtitle={subtitle}
+              services={orderedServices}
+              controls={selectedControls}
+              options={options}
+            />
+          </div>
         </div>
 
         {!isEdit ? (
-          <div className="mt-3 text-xs opacity-70">
+          <div className="mt-3 text-xs opacity-70 portfolio-public-tip">
             Tip: agrega <span className="font-semibold">?edit=1</span> a la URL para ordenar por drag & drop.
           </div>
         ) : null}
       </div>
+
+      <style jsx global>{`
+        @media print {
+          .portfolio-public-root {
+            background: #fff !important;
+            min-height: auto !important;
+          }
+          .portfolio-public-shell {
+            max-width: none !important;
+            padding: 0 !important;
+          }
+          .portfolio-public-card {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+          }
+          .portfolio-public-tip {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <style jsx>{`
+        .preview-reorder-a,
+        .preview-reorder-b {
+          animation: previewReorderPulse 340ms cubic-bezier(0.22, 0.72, 0.2, 1);
+        }
+
+        @keyframes previewReorderPulse {
+          0% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+          40% {
+            transform: translateY(-3px) scale(0.996);
+            opacity: 0.9;
+          }
+          100% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
