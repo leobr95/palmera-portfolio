@@ -1,6 +1,8 @@
 import Image from "next/image";
+import { Source_Sans_3 } from "next/font/google";
 import { useCallback, useEffect, useMemo, useState, type SVGProps } from "react";
 import type {
+  Certification,
   RepresentativeClient,
   Service,
   ServiceCategory,
@@ -10,7 +12,12 @@ import { PORTFOLIO_IMAGES } from "@/lib/portafolio-images";
 import type { PortfolioPreviewProps } from "./portfolioPreviewTypes";
 
 const DEFAULT_CAT_ORDER: ServiceCategory[] = ["Plagas", "Higiene", "Especializados"];
-const PAGE_COUNT = 4;
+const PAGE_COUNT = 5;
+
+const brochureFont = Source_Sans_3({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800", "900"],
+});
 
 type TurnDirection = "next" | "prev";
 type TurnState = { from: number; to: number; direction: TurnDirection };
@@ -30,11 +37,20 @@ type BrochurePalette = {
   accent2Rgb: string;
   bgSoft1: string;
   bgSoft2: string;
+  bgSoft2Rgb: string;
   bgSoft3: string;
   touch1: string;
   touch2: string;
   touch3: string;
   whyAccent: string;
+};
+
+type PrintPaper = "a4" | "letter" | "legal";
+
+type PrintPaperSpec = {
+  key: PrintPaper;
+  widthMm: number;
+  heightMm: number;
 };
 
 function brochurePalette(theme: "green" | "aqua"): BrochurePalette {
@@ -48,6 +64,7 @@ function brochurePalette(theme: "green" | "aqua"): BrochurePalette {
       accent2Rgb: "27, 170, 201",
       bgSoft1: "#12344a",
       bgSoft2: "#0f2c3e",
+      bgSoft2Rgb: "15, 44, 62",
       bgSoft3: "#0a2231",
       touch1: "#17577a",
       touch2: "#124560",
@@ -65,12 +82,19 @@ function brochurePalette(theme: "green" | "aqua"): BrochurePalette {
     accent2Rgb: "24, 182, 93",
     bgSoft1: "#073726",
     bgSoft2: "#052b1f",
+    bgSoft2Rgb: "5, 43, 31",
     bgSoft3: "#041f16",
     touch1: "#0a4a2e",
     touch2: "#063822",
     touch3: "#041f16",
     whyAccent: "#0c6b3e",
   };
+}
+
+function printPaperSpec(paper: PrintPaper): PrintPaperSpec {
+  if (paper === "letter") return { key: "letter", widthMm: 216, heightMm: 279 };
+  if (paper === "legal") return { key: "legal", widthMm: 216, heightMm: 356 };
+  return { key: "a4", widthMm: 210, heightMm: 297 };
 }
 
 function initials(name: string) {
@@ -287,6 +311,75 @@ function ContactIcon({ label, className }: { label: string; className?: string }
   );
 }
 
+function SocialLinkIcon({ label, className }: { label: string; className?: string }) {
+  const key = normalizeLabel(label);
+
+  if (key.includes("linkedin")) {
+    return (
+      <IconBase className={className}>
+        <rect x="4" y="4" width="16" height="16" rx="2" />
+        <path d="M8 10v6" />
+        <path d="M8 8h.01" />
+        <path d="M12 16v-3a2 2 0 0 1 4 0v3" />
+      </IconBase>
+    );
+  }
+
+  if (key.includes("instagram")) {
+    return (
+      <IconBase className={className}>
+        <rect x="4" y="4" width="16" height="16" rx="4" />
+        <circle cx="12" cy="12" r="3.2" />
+        <circle cx="16.5" cy="7.5" r="0.7" />
+      </IconBase>
+    );
+  }
+
+  if (key.includes("facebook")) {
+    return (
+      <IconBase className={className}>
+        <path d="M14 8h-1.5c-1 0-1.5.5-1.5 1.5V11H14l-.5 3h-2.5v6H8v-6H6v-3h2V9.3C8 6.9 9.5 5 12.1 5H14z" />
+      </IconBase>
+    );
+  }
+
+  if (key.includes("youtube")) {
+    return (
+      <IconBase className={className}>
+        <rect x="3.5" y="6.5" width="17" height="11" rx="2.5" />
+        <path d="m10 9.5 5 3-5 3z" />
+      </IconBase>
+    );
+  }
+
+  if (key.includes("whatsapp")) {
+    return (
+      <IconBase className={className}>
+        <path d="M20 11.5A8 8 0 1 0 7 18l-3 3 4-.8A8 8 0 0 0 20 11.5z" />
+        <path d="M9.8 10.2c0 2 1.9 3.8 4 4l1.2-1.1" />
+      </IconBase>
+    );
+  }
+
+  if (key.includes("web") || key.includes("site")) {
+    return (
+      <IconBase className={className}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18" />
+        <path d="M12 3a15 15 0 0 1 0 18" />
+        <path d="M12 3a15 15 0 0 0 0 18" />
+      </IconBase>
+    );
+  }
+
+  return (
+    <IconBase className={className}>
+      <path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1" />
+      <path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1" />
+    </IconBase>
+  );
+}
+
 function WhyIcon({ index, className }: { index: number; className?: string }) {
   if (index % 4 === 0) {
     return (
@@ -337,8 +430,17 @@ export function PortfolioPreviewBrochure({
   const accent = options?.accentColor ?? palette.accent;
   const logoSrc = options?.logoSrc ?? "/brand/palmera-junior.webp";
   const showLogo = options?.showLogo ?? true;
+  const showAnticimexBadge = options?.showAnticimexBadge ?? true;
   const showClientMeta = options?.showClientMeta ?? true;
   const maxClients = options?.maxRepresentativeClients ?? 8;
+  const isScrollPreview = options?.brochurePreviewMode === "scroll";
+  const isPrintMode = options?.printMode ?? false;
+  const selectedPrintPaper: PrintPaper = options?.printPaper === "letter" || options?.printPaper === "legal"
+    ? options.printPaper
+    : "a4";
+  const paperSpec = printPaperSpec(selectedPrintPaper);
+  const pageAspect = `${paperSpec.widthMm} / ${paperSpec.heightMm}`;
+  const touchImageSrc = isPrintMode ? "/Images/portada.jpg" : PORTFOLIO_IMAGES.smart.src;
 
   const serviceGroups = useMemo(() => {
     const byCategory = new Map<ServiceCategory, Service[]>();
@@ -372,7 +474,12 @@ export function PortfolioPreviewBrochure({
     return [{ id: client.id, name: client.name, logoSrc: client.logoSrc }];
   }, [client.id, client.logoSrc, client.name, company.representativeClients, maxClients]);
 
-  const whyItems = controls.slice(0, 4);
+  const certifications = useMemo(
+    () => (company.certifications ?? []) as Certification[],
+    [company.certifications]
+  );
+
+  const whyItems = controls;
 
   const contactRows = useMemo(() => {
     const socials = company.socials ?? [];
@@ -399,29 +506,32 @@ export function PortfolioPreviewBrochure({
 
   const followRows = useMemo(() => (company.socials ?? []).slice(0, 4), [company.socials]);
 
-  const canPrev = index > 0 && !turn;
-  const canNext = index < PAGE_COUNT - 1 && !turn;
+  const canPrev = !isScrollPreview && index > 0 && !turn;
+  const canNext = !isScrollPreview && index < PAGE_COUNT - 1 && !turn;
 
   const goTo = useCallback(
     (next: number, direction: TurnDirection) => {
+      if (isScrollPreview) return;
       if (turn) return;
       if (next < 0 || next >= PAGE_COUNT) return;
       if (next === index) return;
       setTurn({ from: index, to: next, direction });
     },
-    [index, turn]
+    [index, isScrollPreview, turn]
   );
 
   useEffect(() => {
+    if (isScrollPreview) return;
     if (!turn) return;
     const timer = window.setTimeout(() => {
       setIndex(turn.to);
       setTurn(null);
     }, 760);
     return () => window.clearTimeout(timer);
-  }, [turn]);
+  }, [isScrollPreview, turn]);
 
   useEffect(() => {
+    if (isScrollPreview) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "ArrowLeft") goTo(index - 1, "prev");
       if (event.key === "ArrowRight") goTo(index + 1, "next");
@@ -429,9 +539,10 @@ export function PortfolioPreviewBrochure({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [goTo, index, turn]);
+  }, [goTo, index, isScrollPreview, turn]);
 
   const pageClassName = (page: number) => {
+    if (isScrollPreview) return "page pageScroll";
     if (!turn) return page === index ? "page is-active" : "page";
     if (page === turn.from) {
       return `page is-active ${turn.direction === "next" ? "turn-out-next" : "turn-out-prev"}`;
@@ -443,36 +554,44 @@ export function PortfolioPreviewBrochure({
   };
 
   return (
-    <div className="brochureRoot">
-      <div className="toolbar">
+    <div className={`brochureRoot ${brochureFont.className}`}>
+      {!isScrollPreview ? (
+        <div className="toolbar">
         <div className="brandbar">
-          <div className="logoMark" />
+          <Image
+            src={logoSrc}
+            alt={`${company.name} logo`}
+            width={128}
+            height={38}
+            className="brandLogo"
+          />
           <div className="brandText">
             <strong>{company.name}</strong>
-            <small>Brochure · Full Bleed</small>
+            <small>Brochure · Sangrado completo</small>
           </div>
         </div>
 
-        <div className="controls">
-          <button className="btn" type="button" onClick={() => goTo(index - 1, "prev")} disabled={!canPrev}>
-            <IconBase className="toolbarIcon">
-              <path d="m15 18-6-6 6-6" />
-              <path d="M9 12h12" />
-            </IconBase>
-            Anterior
-          </button>
-          <button className="btn" type="button" onClick={() => goTo(index + 1, "next")} disabled={!canNext}>
-            Siguiente
-            <IconBase className="toolbarIcon">
-              <path d="m9 6 6 6-6 6" />
-              <path d="M3 12h12" />
-            </IconBase>
-          </button>
+          <div className="controls">
+            <button className="btn" type="button" onClick={() => goTo(index - 1, "prev")} disabled={!canPrev}>
+              <IconBase className="toolbarIcon">
+                <path d="m15 18-6-6 6-6" />
+                <path d="M9 12h12" />
+              </IconBase>
+              Anterior
+            </button>
+            <button className="btn" type="button" onClick={() => goTo(index + 1, "next")} disabled={!canNext}>
+              Siguiente
+              <IconBase className="toolbarIcon">
+                <path d="m9 6 6 6-6 6" />
+                <path d="M3 12h12" />
+              </IconBase>
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      <div className="stage">
-        <div className="book">
+      <div className={`stage${isScrollPreview ? " stageScroll" : ""}`}>
+        <div className={`book${isScrollPreview ? " bookScroll" : ""}`}>
           <section className={pageClassName(0)}>
             <div className="pageInner">
               <div className="pageNum">01</div>
@@ -498,6 +617,26 @@ export function PortfolioPreviewBrochure({
                       />
                     </div>
                   ) : null}
+                  {showAnticimexBadge ? (
+                    <div className="coverAnticimexWrap">
+                      <Image
+                        src="/brand/anticimex.png"
+                        alt="Anticimex"
+                        width={170}
+                        height={56}
+                        className="coverAnticimexLogo"
+                        loading={isPrintMode ? "eager" : undefined}
+                        style={
+                          isPrintMode
+                            ? {
+                                filter: "brightness(0) saturate(100%) invert(100%)",
+                                opacity: 0.98,
+                              }
+                            : undefined
+                        }
+                      />
+                    </div>
+                  ) : null}
                   <div className="coverOverlay">
                     <h1 className="coverTitle">{title}</h1>
                     {showClientMeta ? (
@@ -510,10 +649,6 @@ export function PortfolioPreviewBrochure({
                     <p className="coverKicker">{company.tagline}</p>
                   </div>
                 </figure>
-
-                <div className="coverFooter">
-                  <p>{company.supportLine}</p>
-                </div>
               </div>
             </div>
           </section>
@@ -533,15 +668,17 @@ export function PortfolioPreviewBrochure({
                       <h3>{group.category}</h3>
                       <p>{CATEGORY_COPY[group.category]}</p>
 
-                      {group.items.map((service) => (
-                        <div className="serviceItem" key={service.id}>
-                          <ServiceIcon icon={service.icon} className="iconSvg iconService" />
-                          <div>
-                            <b>{service.name}</b>
-                            <small>{service.summary}</small>
+                      <div className="serviceItemsGrid">
+                        {group.items.map((service) => (
+                          <div className="serviceItem" key={service.id}>
+                            <ServiceIcon icon={service.icon} className="iconSvg iconService" />
+                            <div>
+                              <b>{service.name}</b>
+                              <small>{service.summary}</small>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -556,7 +693,6 @@ export function PortfolioPreviewBrochure({
               <div className="pad">
                 <div className="sectionHead">
                   <h2>Nuestros Clientes</h2>
-                  <p className="hint">Logo centrado y nombre inferior.</p>
                 </div>
 
                 <p className="clientsIntro">
@@ -573,8 +709,9 @@ export function PortfolioPreviewBrochure({
                             src={item.logoSrc}
                             alt={item.name}
                             fill
-                            sizes="86px"
+                            sizes="112px"
                             className="clientLogoImage"
+                            loading={isPrintMode ? "eager" : undefined}
                           />
                         ) : (
                           <span>{initials(item.name)}</span>
@@ -590,12 +727,64 @@ export function PortfolioPreviewBrochure({
 
           <section className={pageClassName(3)}>
             <div className="bgTech" />
-            <div className="pageInner">
+            <div className="pageInner certPage">
               <div className="pageNum">04</div>
+              <div className="pad certPad">
+                <div className="sectionHead">
+                  <h2>Certificaciones</h2>
+                </div>
+
+                <p className="clientsIntro">
+                  Certificaciones y estándares que respaldan nuestros procesos de calidad, inocuidad y cumplimiento.
+                </p>
+
+                <div className="certGrid">
+                  {certifications.map((cert) => (
+                    <article key={cert.id} className="certItem">
+                      <div className="certLogo">
+                        {cert.logoSrc ? (
+                          <Image
+                            src={cert.logoSrc}
+                            alt={cert.name}
+                            fill
+                            sizes="96px"
+                            className="certLogoImage"
+                            loading={isPrintMode ? "eager" : undefined}
+                          />
+                        ) : (
+                          <span>{initials(cert.name)}</span>
+                        )}
+                      </div>
+                      <div>
+                        <h3>{cert.name}</h3>
+                        <p>{cert.description}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+              <figure className="certBottomMedia">
+                <Image
+                  src="/Images/certificaciones.jpg"
+                  alt="Certificaciones Palmera Junior"
+                  fill
+                  sizes="(max-width: 900px) 100vw, 70vw"
+                  className="certBottomImage"
+                  loading={isPrintMode ? "eager" : undefined}
+                />
+                <div className="certBottomFade" />
+              </figure>
+            </div>
+          </section>
+
+          <section className={pageClassName(4)}>
+            <div className="bgTech" />
+            <div className="pageInner">
+              <div className="pageNum">05</div>
               <div className="p4">
                 <article className="why">
                   <h2>
-                    Why Choose <span>{company.name}?</span>
+                    ¿Por qué elegir <span>{company.name}?</span>
                   </h2>
                   <p className="whySub">Acompanamiento tecnico con prevencion, trazabilidad y respuesta proactiva.</p>
 
@@ -613,20 +802,21 @@ export function PortfolioPreviewBrochure({
                 <aside className="touch">
                   <div className="touchTop">
                     <Image
-                      src={PORTFOLIO_IMAGES.smart.src}
+                      src={touchImageSrc}
                       alt={PORTFOLIO_IMAGES.smart.alt}
                       fill
                       sizes="(max-width: 900px) 100vw, 40vw"
                       className="touchImage"
+                      loading={isPrintMode ? "eager" : undefined}
                     />
                     <div className="touchTitle">
-                      Get <span>in</span> Touch
+                      Contác<span>ta</span>nos
                     </div>
                   </div>
 
                   <div className="touchBody">
                     <div>
-                      <div className="miniHead">Contact Us</div>
+                      <div className="miniHead">Contáctanos</div>
                       <div className="contactList">
                         {contactRows.map((row) => (
                           <div className="contactRow" key={`${row.label}-${row.value}`}>
@@ -641,7 +831,7 @@ export function PortfolioPreviewBrochure({
                     </div>
 
                     <div>
-                      <div className="miniHead">Follow Us</div>
+                      <div className="miniHead">Síguenos</div>
                       <div className="follow">
                         {followRows.map((row) => (
                           <a
@@ -651,6 +841,7 @@ export function PortfolioPreviewBrochure({
                             target={row.href.startsWith("http") ? "_blank" : undefined}
                             rel={row.href.startsWith("http") ? "noreferrer" : undefined}
                           >
+                            <SocialLinkIcon label={row.label} className="socialIcon" />
                             {row.label}
                           </a>
                         ))}
@@ -674,6 +865,7 @@ export function PortfolioPreviewBrochure({
           --accent-2-rgb: ${palette.accent2Rgb};
           --bg-soft-1: ${palette.bgSoft1};
           --bg-soft-2: ${palette.bgSoft2};
+          --bg-soft-2-rgb: ${palette.bgSoft2Rgb};
           --bg-soft-3: ${palette.bgSoft3};
           --touch-1: ${palette.touch1};
           --touch-2: ${palette.touch2};
@@ -709,10 +901,11 @@ export function PortfolioPreviewBrochure({
           min-width: 220px;
         }
 
-        .logoMark {
-          width: 30px;
-          height: 30px;
-          background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.95), rgba(var(--accent-2-rgb), 0.9));
+        .brandLogo {
+          width: min(128px, 32vw);
+          height: auto;
+          object-fit: contain;
+          flex: 0 0 auto;
         }
 
         .brandText {
@@ -738,7 +931,8 @@ export function PortfolioPreviewBrochure({
           gap: 10px;
           align-items: center;
           justify-content: flex-end;
-          flex: 1;
+          width: auto;
+          margin-left: auto;
         }
 
         .btn {
@@ -775,10 +969,16 @@ export function PortfolioPreviewBrochure({
 
         .stage {
           width: 100%;
-          aspect-ratio: 1 / 1.28;
+          aspect-ratio: ${pageAspect};
           position: relative;
           perspective: 1800px;
           overflow: hidden;
+        }
+
+        .stageScroll {
+          aspect-ratio: auto;
+          perspective: none;
+          overflow: visible;
         }
 
         .book {
@@ -788,6 +988,13 @@ export function PortfolioPreviewBrochure({
           overflow: hidden;
         }
 
+        .bookScroll {
+          height: auto;
+          overflow: visible;
+          display: grid;
+          gap: 12px;
+        }
+
         .page {
           position: absolute;
           inset: 0;
@@ -795,6 +1002,19 @@ export function PortfolioPreviewBrochure({
           transform-style: preserve-3d;
           opacity: 0;
           pointer-events: none;
+        }
+
+        .pageScroll {
+          position: relative;
+          inset: auto;
+          overflow: hidden;
+          transform: none !important;
+          animation: none !important;
+          transform-style: flat;
+          opacity: 1;
+          pointer-events: auto;
+          aspect-ratio: ${pageAspect};
+          min-height: 540px;
         }
 
         .page.is-active {
@@ -859,12 +1079,13 @@ export function PortfolioPreviewBrochure({
           position: absolute;
           inset: 0;
           display: grid;
-          grid-template-rows: 88% 12%;
+          grid-template-rows: 1fr;
           background: linear-gradient(180deg, rgba(4, 31, 20, 0), rgba(4, 31, 20, 1));
         }
 
         .coverMedia {
           position: relative;
+          height: 100%;
           overflow: hidden;
           margin: 0;
         }
@@ -891,6 +1112,22 @@ export function PortfolioPreviewBrochure({
           height: auto;
           object-fit: contain;
           filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
+        }
+
+        .coverAnticimexWrap {
+          position: absolute;
+          right: 18px;
+          bottom: 42px;
+          z-index: 4;
+          pointer-events: none;
+        }
+
+        .coverAnticimexLogo {
+          width: min(170px, 36vw);
+          height: auto;
+          object-fit: contain;
+          opacity: 0.96;
+          filter: brightness(0) saturate(100%) invert(100%) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.42));
         }
 
         .coverOverlay {
@@ -936,21 +1173,6 @@ export function PortfolioPreviewBrochure({
           line-height: 1.45;
         }
 
-        .coverFooter {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
-          padding: 0 26px 8px;
-          background: linear-gradient(180deg, rgba(4, 31, 20, 1), rgba(4, 31, 20, 1));
-        }
-
-        .coverFooter p {
-          margin: 0;
-          font-size: 12px;
-          color: rgba(234, 246, 255, 0.78);
-        }
-
         .pad {
           position: relative;
           z-index: 2;
@@ -979,10 +1201,11 @@ export function PortfolioPreviewBrochure({
 
         .sectionHead h2 {
           margin: 0;
-          font-size: clamp(24px, 4vw, 34px);
-          font-weight: 900;
-          letter-spacing: -0.45px;
+          font-size: clamp(32px, 5.4vw, 46px);
+          font-weight: 950;
+          letter-spacing: -0.8px;
           line-height: 1.05;
+          text-transform: uppercase;
         }
 
         .hint {
@@ -996,16 +1219,17 @@ export function PortfolioPreviewBrochure({
 
         .servicesGrid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 18px 26px;
+          grid-template-columns: 1fr;
+          gap: 16px;
           align-items: start;
         }
 
         .serviceBlock h3 {
           margin: 0 0 8px;
-          font-size: 18px;
-          font-weight: 900;
-          letter-spacing: 0.2px;
+          font-size: 22px;
+          font-weight: 950;
+          letter-spacing: 0.1px;
+          line-height: 1.1;
         }
 
         .serviceBlock > p {
@@ -1013,6 +1237,12 @@ export function PortfolioPreviewBrochure({
           font-size: 12px;
           color: rgba(234, 246, 255, 0.82);
           line-height: 1.45;
+        }
+
+        .serviceItemsGrid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px 14px;
         }
 
         .serviceItem {
@@ -1062,8 +1292,8 @@ export function PortfolioPreviewBrochure({
 
         .clientsGrid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 20px 14px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px 18px;
           margin-top: 12px;
           align-items: center;
         }
@@ -1079,8 +1309,8 @@ export function PortfolioPreviewBrochure({
         }
 
         .clientLogo {
-          width: 86px;
-          height: 86px;
+          width: 112px;
+          height: 112px;
           position: relative;
           display: grid;
           place-items: center;
@@ -1091,11 +1321,18 @@ export function PortfolioPreviewBrochure({
           box-shadow: none;
           overflow: hidden;
           padding: 12px;
+          transition: transform 0.18s ease, filter 0.18s ease;
+          transform-origin: center;
         }
 
         .clientLogoImage {
           object-fit: contain;
           padding: 2px;
+        }
+
+        .clientCell:hover .clientLogo {
+          transform: scale(1.08);
+          filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.24));
         }
 
         .clientName {
@@ -1104,6 +1341,90 @@ export function PortfolioPreviewBrochure({
           font-size: 13px;
           color: rgba(234, 246, 255, 0.92);
           line-height: 1.2;
+        }
+
+        .certPage {
+          overflow: hidden;
+        }
+
+        .certPad {
+          padding-bottom: clamp(170px, 24%, 220px);
+        }
+
+        .certGrid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px 20px;
+          margin-top: 12px;
+        }
+
+        .certItem {
+          display: grid;
+          grid-template-columns: 96px 1fr;
+          gap: 12px;
+          align-items: center;
+          min-width: 0;
+        }
+
+        .certLogo {
+          position: relative;
+          width: 96px;
+          height: 64px;
+          display: grid;
+          place-items: center;
+          background: transparent;
+          color: rgba(234, 246, 255, 0.9);
+          font-weight: 900;
+          letter-spacing: 0.3px;
+          overflow: hidden;
+        }
+
+        .certLogoImage {
+          object-fit: contain;
+        }
+
+        .certItem h3 {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 900;
+          line-height: 1.2;
+        }
+
+        .certItem p {
+          margin: 6px 0 0;
+          font-size: 12px;
+          color: rgba(234, 246, 255, 0.84);
+          line-height: 1.4;
+        }
+
+        .certBottomMedia {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: clamp(165px, 30%, 225px);
+          margin: 0;
+          z-index: 1;
+          overflow: hidden;
+        }
+
+        .certBottomImage {
+          object-fit: cover;
+          object-position: center 40%;
+          filter: contrast(1.03) saturate(1.04);
+        }
+
+        .certBottomFade {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(var(--bg-soft-2-rgb), 0.96) 0%,
+            rgba(var(--bg-soft-2-rgb), 0.78) 22%,
+            rgba(var(--bg-soft-2-rgb), 0.34) 50%,
+            rgba(var(--bg-soft-2-rgb), 0.08) 72%,
+            rgba(var(--bg-soft-2-rgb), 0) 100%
+          );
         }
 
         .p4 {
@@ -1117,10 +1438,35 @@ export function PortfolioPreviewBrochure({
         }
 
         .why {
-          background: rgba(255, 255, 255, 0.94);
-          color: #0b2a45;
+          position: relative;
+          background: #0a3526;
+          color: #eaf6ff;
           padding: 18px;
           overflow: hidden;
+          isolation: isolate;
+        }
+
+        .why::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image: url("/Images/confianza.jpg");
+          background-size: cover;
+          background-position: center;
+          z-index: 0;
+        }
+
+        .why::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(7, 31, 21, 0.38) 0%, rgba(6, 28, 18, 0.72) 54%, rgba(5, 22, 15, 0.9) 100%);
+          z-index: 0;
+        }
+
+        .why > * {
+          position: relative;
+          z-index: 1;
         }
 
         .why h2 {
@@ -1132,13 +1478,13 @@ export function PortfolioPreviewBrochure({
         }
 
         .why h2 span {
-          color: var(--why-accent);
+          color: var(--accent);
         }
 
         .whySub {
           margin: 10px 0 0;
-          color: #4b6c87;
-          font-size: 13px;
+          color: rgba(234, 246, 255, 0.9);
+          font-size: 14px;
           line-height: 1.45;
         }
 
@@ -1152,7 +1498,7 @@ export function PortfolioPreviewBrochure({
         }
 
         .whyIcon {
-          color: #0b2a45;
+          color: rgba(234, 246, 255, 0.92);
         }
 
         .whyRow b {
@@ -1162,8 +1508,8 @@ export function PortfolioPreviewBrochure({
 
         .whyRow p {
           margin: 3px 0 0;
-          font-size: 12px;
-          color: #4b6c87;
+          font-size: 13px;
+          color: rgba(234, 246, 255, 0.9);
           line-height: 1.4;
           display: -webkit-box;
           -webkit-line-clamp: 2;
@@ -1173,9 +1519,7 @@ export function PortfolioPreviewBrochure({
 
         .touch {
           overflow: hidden;
-          background:
-            radial-gradient(700px 450px at 70% 10%, rgba(var(--accent-rgb), 0.16), transparent 55%),
-            linear-gradient(180deg, var(--touch-1), var(--touch-2) 65%, var(--touch-3));
+          background: transparent;
         }
 
         .touchTop {
@@ -1202,8 +1546,8 @@ export function PortfolioPreviewBrochure({
           left: 18px;
           bottom: 14px;
           font-weight: 900;
-          font-size: clamp(24px, 3vw, 34px);
-          letter-spacing: -0.45px;
+          font-size: clamp(30px, 4vw, 44px);
+          letter-spacing: -0.8px;
           line-height: 1;
           text-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
           z-index: 1;
@@ -1264,6 +1608,7 @@ export function PortfolioPreviewBrochure({
         .socialLink {
           display: inline-flex;
           align-items: center;
+          gap: 8px;
           padding: 6px 0;
           color: rgba(234, 246, 255, 0.92);
           text-decoration: none;
@@ -1271,6 +1616,12 @@ export function PortfolioPreviewBrochure({
           font-weight: 900;
           letter-spacing: 0.2px;
           border-bottom: 1px solid rgba(var(--accent-rgb), 0.22);
+        }
+
+        .socialIcon {
+          width: 18px;
+          height: 18px;
+          flex: 0 0 auto;
         }
 
         .socialLink:hover {
@@ -1319,8 +1670,16 @@ export function PortfolioPreviewBrochure({
             gap: 16px;
           }
 
+          .serviceItemsGrid {
+            grid-template-columns: 1fr;
+          }
+
           .clientsGrid {
             grid-template-columns: repeat(3, 1fr);
+          }
+
+          .certGrid {
+            grid-template-columns: 1fr;
           }
 
           .p4 {
@@ -1336,7 +1695,8 @@ export function PortfolioPreviewBrochure({
           }
 
           .controls {
-            justify-content: space-between;
+            justify-content: flex-start;
+            margin-left: 0;
           }
 
           .btn {
@@ -1361,7 +1721,12 @@ export function PortfolioPreviewBrochure({
 
         @media (max-width: 620px) {
           .stage {
-            aspect-ratio: 1 / 1.5;
+            aspect-ratio: ${pageAspect};
+          }
+
+          .pageScroll {
+            aspect-ratio: ${pageAspect};
+            min-height: 520px;
           }
 
           .pad {
@@ -1385,11 +1750,13 @@ export function PortfolioPreviewBrochure({
             width: min(210px, 70vw);
           }
 
-          .coverFooter {
-            padding: 10px 18px;
-            flex-direction: column;
-            align-items: flex-start;
-            justify-content: center;
+          .coverAnticimexWrap {
+            right: 12px;
+            bottom: 38px;
+          }
+
+          .coverAnticimexLogo {
+            width: min(132px, 45vw);
           }
 
           .pageNum {
@@ -1400,6 +1767,68 @@ export function PortfolioPreviewBrochure({
         }
 
         @media print {
+          @page {
+            size: ${paperSpec.widthMm}mm ${paperSpec.heightMm}mm;
+            margin: 0;
+          }
+
+          .brochureRoot,
+          .brochureRoot * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            forced-color-adjust: none;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+
+          .coverImage,
+          .coverTopLogo,
+          .clientLogoImage,
+          .certLogoImage,
+          .certBottomImage,
+          .touchImage {
+            filter: none !important;
+          }
+
+          .coverOverlay {
+            background: linear-gradient(
+              180deg,
+              rgba(4, 31, 20, 0) 0%,
+              rgba(4, 31, 20, 0.3) 34%,
+              rgba(4, 31, 20, 0.62) 72%,
+              rgba(4, 31, 20, 0.86) 100%
+            ) !important;
+          }
+
+          .coverAnticimexLogo {
+            filter: brightness(0) saturate(100%) invert(100%) !important;
+            opacity: 0.98 !important;
+          }
+
+          .bgTech {
+            background: linear-gradient(180deg, var(--bg-soft-1), var(--bg-soft-2) 58%, var(--bg-soft-3)) !important;
+          }
+
+          .bgTech::before {
+            display: none !important;
+          }
+
+          .touch {
+            background: transparent !important;
+          }
+
+          .touchTop {
+            background: transparent !important;
+          }
+
+          .touchTop::after {
+            display: none !important;
+          }
+
+          .touchTitle {
+            text-shadow: none !important;
+          }
+
           .toolbar {
             display: none !important;
           }
@@ -1411,7 +1840,7 @@ export function PortfolioPreviewBrochure({
           }
 
           .stage {
-            width: 210mm !important;
+            width: ${paperSpec.widthMm}mm !important;
             aspect-ratio: auto !important;
             margin: 0 auto !important;
             perspective: none !important;
@@ -1430,9 +1859,16 @@ export function PortfolioPreviewBrochure({
             pointer-events: auto !important;
             transform: none !important;
             animation: none !important;
-            min-height: 297mm !important;
+            height: ${paperSpec.heightMm}mm !important;
+            min-height: ${paperSpec.heightMm}mm !important;
+            background: #fff !important;
             break-after: page;
             page-break-after: always;
+          }
+
+          .pageInner {
+            height: 100% !important;
+            min-height: ${paperSpec.heightMm}mm !important;
           }
 
           .page:last-child {

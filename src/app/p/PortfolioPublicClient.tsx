@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 
 import { COMPANY, CLIENTS, SERVICES, CONTROLS } from "@/lib/mock-data";
 import { buildGenericClient, GENERIC_CLIENT_ID } from "@/lib/portfolio-client";
-import type { DesignVariant } from "@/components/pdf/PortfolioPdf";
 import type { Client, ServiceCategory, Service, RepresentativeClient } from "@/lib/mock-data";
 
 import { PortfolioPreviewExecutive } from "@/components/previews/PortfolioPreviewExecutive";
@@ -22,6 +21,8 @@ const DEFAULT_TITLE = "Portafolio de Servicios";
 const DEFAULT_TITLE_GENERIC = "Portafolio General de Servicios";
 const DEFAULT_SUBTITLE = "Propuesta para";
 const DEFAULT_SUBTITLE_GENERIC = "Soluciones integrales para organizaciones";
+type DesignVariant = "executive" | "split" | "minimal" | "infographic" | "brochure" | "brochure_alt";
+type PrintPaper = "a4" | "letter" | "legal";
 
 function uniq<T>(arr: T[]) {
   return Array.from(new Set(arr));
@@ -71,10 +72,17 @@ export default function PortfolioPublicClient() {
   const clientParam = sp.get("client") ?? (CLIENTS[0]?.id ?? "colanta");
   const servicesParam = sp.get("services") ?? "";
   const controlsParam = sp.get("controls") ?? "";
+  const repClientsParam = sp.get("repClients") ?? "";
+  const certsParam = sp.get("certs") ?? "";
   const printParam = sp.get("print") ?? "";
+  const paperParam = sp.get("paper") ?? "a4";
 
   const shouldAutoPrint = printParam === "1";
   const isEdit = editParam === "1" && !shouldAutoPrint;
+  const printPaper = useMemo<PrintPaper>(() => {
+    const val = paperParam as PrintPaper;
+    return val === "letter" || val === "legal" ? val : "a4";
+  }, [paperParam]);
 
   const variant = useMemo<DesignVariant>(() => {
     const v = variantParam as DesignVariant;
@@ -116,6 +124,20 @@ export default function PortfolioPublicClient() {
       .map((x) => x.trim())
       .filter(Boolean);
   }, [controlsParam]);
+
+  const repClientIdsFromQuery = useMemo(() => {
+    return repClientsParam
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }, [repClientsParam]);
+
+  const certIdsFromQuery = useMemo(() => {
+    return certsParam
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }, [certsParam]);
 
   const finalServiceIds = useMemo(() => {
     return serviceIds.length ? serviceIds : client.recommendedServiceIds;
@@ -167,11 +189,36 @@ export default function PortfolioPublicClient() {
     []
   );
 
-  const [certOrder, setCertOrder] = useState<string[]>(() => companyCerts.map((c) => c.id));
+  const companyCertIdSet = useMemo(() => new Set(companyCerts.map((c) => c.id)), [companyCerts]);
+  const companyRepClientIdSet = useMemo(() => new Set(companyRepClients.map((c) => c.id)), [companyRepClients]);
+
+  const initialCertOrder = useMemo(() => {
+    const fromQuery = certIdsFromQuery.filter((id) => companyCertIdSet.has(id));
+    return fromQuery.length ? fromQuery : companyCerts.map((c) => c.id);
+  }, [certIdsFromQuery, companyCertIdSet, companyCerts]);
+
+  const initialRepClientOrder = useMemo(() => {
+    const fromQuery = repClientIdsFromQuery.filter((id) => companyRepClientIdSet.has(id));
+    return fromQuery.length ? fromQuery : companyRepClients.map((c) => c.id);
+  }, [companyRepClientIdSet, companyRepClients, repClientIdsFromQuery]);
+
+  const [certOrder, setCertOrder] = useState<string[]>(() => initialCertOrder);
   const [coverageOrder, setCoverageOrder] = useState<string[]>(() => companyCoverage);
-  const [repClientOrder, setRepClientOrder] = useState<string[]>(() => companyRepClients.map((c) => c.id));
+  const [repClientOrder, setRepClientOrder] = useState<string[]>(() => initialRepClientOrder);
   const [previewAnimNonce, setPreviewAnimNonce] = useState(0);
   const didInitPreviewAnim = useRef(false);
+
+  useEffect(() => {
+    setCertOrder((prev) =>
+      shallowEqualArray(prev, initialCertOrder) ? prev : initialCertOrder
+    );
+  }, [initialCertOrder]);
+
+  useEffect(() => {
+    setRepClientOrder((prev) =>
+      shallowEqualArray(prev, initialRepClientOrder) ? prev : initialRepClientOrder
+    );
+  }, [initialRepClientOrder]);
 
   // ✅ Reset de órdenes SOLO cuando cambian realmente los servicios/cats
   useEffect(() => {
@@ -242,11 +289,14 @@ export default function PortfolioPublicClient() {
       accentColor: variant === "brochure_alt" ? "#3bd5ff" : COMPANY.colors.palmeraGreen,
       showAnticimexBadge: true,
       showClientMeta: client.id !== GENERIC_CLIENT_ID,
-      maxRepresentativeClients: 7,
+      maxRepresentativeClients: repClientOrder.length || 7,
       serviceCategoryOrder: categoryOrder,
       brochureTheme: variant === "brochure_alt" ? ("aqua" as const) : ("green" as const),
+      brochurePreviewMode: shouldAutoPrint ? ("scroll" as const) : ("flip" as const),
+      printMode: shouldAutoPrint,
+      printPaper,
     }),
-    [categoryOrder, client.id, variant]
+    [categoryOrder, client.id, repClientOrder.length, shouldAutoPrint, variant, printPaper]
   );
 
   const Preview = useMemo(() => {
@@ -269,10 +319,51 @@ export default function PortfolioPublicClient() {
 
   useEffect(() => {
     if (!shouldAutoPrint) return;
-    const timer = window.setTimeout(() => {
-      window.print();
-    }, 420);
-    return () => window.clearTimeout(timer);
+    let cancelled = false;
+    const cleanups: Array<() => void> = [];
+
+    const waitForAssets = async () => {
+      const images = Array.from(document.images);
+      await Promise.all(
+        images.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) {
+                resolve();
+                return;
+              }
+              const onDone = () => resolve();
+              img.addEventListener("load", onDone, { once: true });
+              img.addEventListener("error", onDone, { once: true });
+              cleanups.push(() => {
+                img.removeEventListener("load", onDone);
+                img.removeEventListener("error", onDone);
+              });
+            })
+        )
+      );
+
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+    };
+
+    const timer = window.setTimeout(async () => {
+      await waitForAssets();
+      await new Promise((resolve) => window.setTimeout(resolve, 220));
+      if (cancelled) return;
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          if (!cancelled) window.print();
+        });
+      });
+    }, 120);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      cleanups.forEach((fn) => fn());
+    };
   }, [shouldAutoPrint]);
 
   if (!client) return null;
@@ -346,6 +437,12 @@ export default function PortfolioPublicClient() {
 
       <style jsx global>{`
         @media print {
+          html,
+          body {
+            background: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           .portfolio-public-root {
             background: #fff !important;
             min-height: auto !important;

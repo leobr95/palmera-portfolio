@@ -16,7 +16,9 @@ export type PortfolioPreviewOptions = {
   copy?: PortfolioPreviewCopy;
   serviceCategoryOrder?: ServiceCategory[];
   brochureTheme?: "green" | "aqua";
-
+  brochurePreviewMode?: "flip" | "scroll";
+  printMode?: boolean;
+  printPaper?: "a4" | "letter" | "legal";
 };
 
 export type PortfolioPreviewProps = {
